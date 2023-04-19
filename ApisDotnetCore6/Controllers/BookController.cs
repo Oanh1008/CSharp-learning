@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
-using System.Net;
+﻿using System.Net;
 using ApisDotnetCore6.Data;
-using AutoMapper;
+using ApisDotnetCore6.Exception;
+using ApisDotnetCore6.Models;
+using ApisDotnetCore6.Service;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ApisDotnetCore6.Controllers;
 
@@ -11,76 +11,58 @@ namespace ApisDotnetCore6.Controllers;
 [ApiController]
 public class BookController : Controller
 {
-    //https://www.c-sharpcorner.com/article/asp-net-core-6-web-api-crud-with-entity-framework/
-    private readonly BookStoreContext _bookStoreContext;
-    
-    private readonly IMapper _mapper;
+    private readonly BookService _bookService;
 
-    public BookController(BookStoreContext bookStoreContext, IMapper mapper)
+    public BookController(BookService bookService)
     {
-        this._bookStoreContext = bookStoreContext;
-        this._mapper = mapper;
+        this._bookService = bookService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetBooks()
+    public async Task<List<Book>> GetBooks()
     {
-        return Ok(await _bookStoreContext.Books!.ToListAsync());
+        return await _bookService.GetAllBooks();
     }
 
     [HttpGet("/{id}")]
-    public async Task<ActionResult<Book>> GetBookById(int id)
+    public async Task<Book> GetBookById([FromRoute] int id)
     {
-        var book = await _bookStoreContext.Books!.FindAsync(id);
-
-        if (book?.Id == null)
+        try
         {
-            return NotFound();
+            return await _bookService.GetBookById(id);
         }
-
-        return Ok(book);
+        catch (NotFoundResourceException e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     [HttpDelete("/{id}")]
-    public async Task<IActionResult> DeleteBookById(int id)
+    public async Task<ObjectResult> DeleteBookById([FromRoute] int id)
     {
-        var book = await _bookStoreContext.Books!.FindAsync(id);
+        await _bookService.DeleteBookById(id);
 
-        if (book?.Id == null)
-        {
-            return NotFound();
-        }
-
-        _bookStoreContext.Books.Remove(book);
-        await _bookStoreContext.SaveChangesAsync();
-
-        return StatusCode((int) HttpStatusCode.OK,"Delete oke!");
+        return await Task.FromResult(
+            new ObjectResult(StatusCode((int)HttpStatusCode.OK,
+                $"Deleted id = {id}")));
     }
 
     [HttpPost]
-    public async Task<ActionResult<Book>> SaveBook(Book book)
+    public async Task<ObjectResult> SaveBook([FromBody] BookModel bookRequest)
     {
-        await _bookStoreContext.Books!.AddAsync(book);
-        await _bookStoreContext.SaveChangesAsync();
-        return CreatedAtAction("GetBooks", new { id = book.Id }, book);
+        return await Task.FromResult(
+            new ObjectResult(
+                StatusCode((int)HttpStatusCode.Created,
+                    _bookService.SaveBook(bookRequest).Result)));
     }
 
     [HttpPut]
-    public async Task<ActionResult<Book>> PutBook(Book book)
+    public async Task<ObjectResult> PutBook([FromBody] BookModel bookRequest)
     {
-        var bookDb = await _bookStoreContext.Books!.FindAsync(book.Id);
-        if (bookDb == null)
-        {
-            return BadRequest("The id = {} is not existed");
-        }
-        
-        bookDb.Description = book.Description;
-        bookDb.Title = book.Title;
-        bookDb.Price = book.Price;
-        bookDb.Quantity = book.Quantity;
-        
-        await _bookStoreContext.SaveChangesAsync();
-        
-        return Ok(bookDb);
+        return await Task.FromResult(
+            new ObjectResult(
+                StatusCode((int)HttpStatusCode.OK,
+                    _bookService.PutBook(bookRequest).Result)));
     }
 }

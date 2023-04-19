@@ -1,5 +1,6 @@
 ﻿using ApisDotnetCore6.Data;
 using ApisDotnetCore6.Dto;
+using ApisDotnetCore6.Models;
 using AutoMapper;
 
 namespace ApisDotnetCore6.Helper;
@@ -16,5 +17,6 @@ public class MappingProfile : Profile
                
 
         CreateMap<UserCreateDto, User>();
+        CreateMap<Book, BookModel>().ReverseMap();
     }
 }
