@@ -65,4 +65,10 @@ public class BookController : Controller
                 StatusCode((int)HttpStatusCode.OK,
                     _bookService.PutBook(bookRequest).Result)));
     }
+
+    [HttpGet("/getBook")]
+    public async Task<IActionResult> PagingAndFilter([FromQuery] PagingRequestModel pagingRequestModel)
+    {
+        return Ok(await _bookService.PagingFilter(pagingRequestModel));
+    }
 }

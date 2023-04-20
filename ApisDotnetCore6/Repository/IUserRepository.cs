@@ -2,7 +2,7 @@
 
 namespace ApisDotnetCore6.Repository;
 
-public interface IUserRepository
+public interface IUserRepository 
 {
     User CreateUser(User user);
     List<User> GetAllUser();
